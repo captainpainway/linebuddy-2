@@ -1,0 +1,8 @@
+process-maps/target
+process-maps/**/*.rs.bk
+Cargo.lock
+bin/
+pkg/
+wasm-pack.log
+.idea/
+node_modules

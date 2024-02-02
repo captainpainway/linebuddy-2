@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Line Buddy 2.0</title>
+</head>
+<body>
+    <div id="info"></div>
+    <script type="module">
+        import init, {greet, process_map} from './process-maps/pkg/process_maps.js';
+        async function run() {
+            await init();
+            document.getElementById('info').innerText = greet();
+        }
+        run();
+        fetch('./map-files/test.osm').then(response => {
+            return response.text();
+        }).then(data => {
+            // console.log(data);
+            process_map(data)
+        });
+    </script>
+</body>
+</html>
