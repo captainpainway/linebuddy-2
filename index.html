@@ -11,18 +11,13 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #000066;
-        }
-        canvas {
-            border: 1px solid #000;
-            background: #ffffff;
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <script type="module">
-        import init, {process_map} from './process-maps/pkg/process_maps.js';
+        import init, {process_ways, process_relations, process_nodes} from './process-maps/pkg/process_maps.js';
         init();
 
         let canvas = document.getElementById('canvas');
@@ -32,45 +27,113 @@
         let s = '28.41566';
         let e = '-81.57547';
         let bbox = `${s},${w},${n},${e}`;
-        let q = `way[building];foreach
-        {
-          (
-            ._;
-            >;
-          );
-          out;
-        }`;
-        let json = `[out:json]`;
-        let query = `[timeout:90][bbox:${bbox}];${q};out;`;
+        let buildings = `way[building];foreach{(._;>;);out;}`;
+        let walkways = `way[highway];foreach{(._;>;);out;}`;
+        let trees = `node[natural=tree];foreach{(._;>;);out;}`;
+        let gardens = `way[leisure=garden];foreach{(._;>;);out;}`;
+        let forests = `way[landuse=forest];foreach{(._;>;);out;}`;
+        let water = `relation[natural=water];foreach{(._;>;);out;}`;
+        let query = `[timeout:90][bbox:${bbox}];`;
 
         let ratio = (Math.abs(+w) - Math.abs(+e)) / (+n - +s);
-        console.log(ratio);
-        let width = 800;
+        let width = 1280;
         let height = width * ratio;
         canvas.width = height;
         canvas.height = width;
 
+        let ctx = canvas.getContext('2d');
+        ctx.translate(0, width);
+        ctx.rotate(-Math.PI / 2);
+
         let url = `https://overpass-api.de/api/interpreter?data=${query}`;
+        getWater(url);
 
-        fetch(url).then(response => {
-            return response.text();
-        }).then(data => {
-            let p = process_map(data, width, height);
-
-            let ctx = canvas.getContext('2d');
-            ctx.translate(0, width);
-            ctx.rotate(-Math.PI / 2);
-            for (let building of p) {
-                ctx.beginPath();
-                for (let point of building) {
-                    ctx.lineTo(point[0], point[1]);
+        function getWater(url) {
+            fetch(url+`${water};out;`).then(response => {
+                return response.text();
+            }).then(data => {
+                let p = process_relations(data, width, height);
+                for (let water of p) {
+                    ctx.beginPath();
+                    for (let point of water) {
+                        ctx.lineTo(point[0], point[1]);
+                    }
+                    ctx.fillStyle = 'rgb(83,156,156)';
+                    ctx.fill();
+                    ctx.closePath();
                 }
-                ctx.closePath();
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.fill();
-                ctx.stroke();
-            }
-        });
+                getGardens(url);
+            });
+        }
+
+        function getWalkways(url) {
+            fetch(url+`${walkways};out;`).then(response => {
+                return response.text();
+            }).then(data => {
+                let p = process_ways(data, width, height);
+                for (let walkway of p) {
+                    ctx.beginPath();
+                    for (let point of walkway) {
+                        ctx.lineTo(point[0], point[1]);
+                    }
+                    ctx.strokeStyle = 'rgb(0,0,0)';
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+                getTrees(url);
+            });
+        }
+
+        function getBuildings(url) {
+            fetch(url+`${buildings};out;`).then(response => {
+                return response.text();
+            }).then(data => {
+                let p = process_ways(data, width, height);
+                for (let building of p) {
+                    ctx.beginPath();
+                    for (let point of building) {
+                        ctx.lineTo(point[0], point[1]);
+                    }
+                    ctx.fillStyle = 'rgb(98,90,87)';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            });
+        }
+
+        function getGardens(url) {
+            fetch(url+`${gardens};${forests};out;`).then(response => {
+                return response.text();
+            }).then(data => {
+                let p = process_ways(data, width, height);
+                for (let garden of p) {
+                    ctx.beginPath();
+                    for (let point of garden) {
+                        ctx.lineTo(point[0], point[1]);
+                    }
+                    ctx.fillStyle = 'rgb(136,172,140)';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+                getWalkways(url);
+            });
+        }
+
+        function getTrees(url) {
+            fetch(url+`${trees};out;`).then(response => {
+                return response.text();
+            }).then(data => {
+                let p = process_nodes(data, width, height);
+                for (let tree of p) {
+                    ctx.beginPath();
+                    ctx.arc(tree[0], tree[1], 3, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'rgb(40,107,83)';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+                getBuildings(url);
+            });
+        }
     </script>
 </body>
 </html>
