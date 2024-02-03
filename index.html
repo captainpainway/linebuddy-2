@@ -16,8 +16,7 @@
         fetch('./map-files/test.osm').then(response => {
             return response.text();
         }).then(data => {
-            // console.log(data);
-            process_map(data)
+            process_map(data);
         });
     </script>
 </body>
