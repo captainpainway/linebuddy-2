@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
 use osm_xml as osm;
+use js_sys;
 
 #[wasm_bindgen]
 extern "C" {
@@ -8,38 +10,34 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn greet() -> String {
-    return "Hello, process-maps!".to_string();
-}
-
-#[wasm_bindgen]
-pub fn process_map(text: String) {
+pub fn process_map(text: String, width: f64, height: f64) -> js_sys::Array {
     let doc = osm::OSM::parse(text.as_bytes()).unwrap();
+    // log(&format!("{:?}", doc));
 
-    // normalize_points(doc.bounds.unwrap());
+    let bounds = doc.bounds.unwrap();
+    let arr = js_sys::Array::new();
 
-    for (id, way) in doc.ways.iter() {
-        if way.is_polygon() {
-            for tag in way.tags.iter() {
-                if tag.key == "name" && tag.val == "Prince Charming Regal Carrousel" {
-                    log(&format!("{:?}", way));
-                    for node in way.nodes.iter() {
-                        let n = osm::OSM::resolve_reference(node);
-                        log(&format!("{:?}", n));
-                    } 
+    for (_id, way) in doc.ways.iter() {
+        let coords = js_sys::Array::new();
+                for node in way.nodes.iter() {
+                    let n = &doc.resolve_reference(&node);
+                    match n {
+                        osm::Reference::Node(node) => {
+                            let n_lat = map_points(node.lat, bounds.minlat, bounds.maxlat, 0.0, width);
+                            let n_lon = map_points(node.lon, bounds.minlon, bounds.maxlon, 0.0, height);
+                            let point = js_sys::Array::new();
+                            point.push(&JsValue::from_f64(n_lat));
+                            point.push(&JsValue::from_f64(n_lon));
+                            coords.push(&point);
+                        },
+                        _ => {}
+                    }
                 }
-            }
-        }
+        arr.push(&coords);
     }
+    return arr;
 }
 
-fn normalize_points(bounds: osm::Bounds) -> (u32, u32) {
-    let min_x = (bounds.minlat, 0);
-    let min_y = (bounds.minlon, 0);
-    let max_x = (bounds.maxlat, 800);
-    let max_y = (bounds.maxlon, 600);
-
-
-    log(&format!("{:?}", bounds));
-    return (0, 0);
+fn map_points(value: f64, start1: f64, stop1: f64, start2: f64, stop2: f64) -> f64 {
+    return ((value - start1) / (stop1 - start1) * (stop2 - start2) + start2).floor();
 }

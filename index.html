@@ -3,21 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <title>Line Buddy 2.0</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000066;
+        }
+        canvas {
+            border: 1px solid #000;
+            background: #ffffff;
+        }
+    </style>
 </head>
 <body>
-    <div id="info"></div>
+    <canvas id="canvas"></canvas>
     <script type="module">
-        import init, {greet, process_map} from './process-maps/pkg/process_maps.js';
-        async function run() {
-            await init();
-            document.getElementById('info').innerText = greet();
-        }
-        run();
+        import init, {process_map} from './process-maps/pkg/process_maps.js';
+        init();
 
-        fetch('./map-files/magic_kingdom.osm').then(response => {
+        let canvas = document.getElementById('canvas');
+
+        let n = '28.42278';
+        let w = '-81.58709';
+        let s = '28.41566';
+        let e = '-81.57547';
+        let bbox = `${s},${w},${n},${e}`;
+        let q = `way[building];foreach
+        {
+          (
+            ._;
+            >;
+          );
+          out;
+        }`;
+        let json = `[out:json]`;
+        let query = `[timeout:90][bbox:${bbox}];${q};out;`;
+
+        let ratio = (Math.abs(+w) - Math.abs(+e)) / (+n - +s);
+        console.log(ratio);
+        let width = 800;
+        let height = width * ratio;
+        canvas.width = height;
+        canvas.height = width;
+
+        let url = `https://overpass-api.de/api/interpreter?data=${query}`;
+
+        fetch(url).then(response => {
             return response.text();
         }).then(data => {
-            process_map(data);
+            let p = process_map(data, width, height);
+
+            let ctx = canvas.getContext('2d');
+            ctx.translate(0, width);
+            ctx.rotate(-Math.PI / 2);
+            for (let building of p) {
+                ctx.beginPath();
+                for (let point of building) {
+                    ctx.lineTo(point[0], point[1]);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fill();
+                ctx.stroke();
+            }
         });
     </script>
 </body>
