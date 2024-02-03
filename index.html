@@ -13,7 +13,8 @@
             document.getElementById('info').innerText = greet();
         }
         run();
-        fetch('./map-files/test.osm').then(response => {
+
+        fetch('./map-files/magic_kingdom.osm').then(response => {
             return response.text();
         }).then(data => {
             process_map(data);
