@@ -73,11 +73,11 @@ fn process_coords(doc: &osm::OSM, way: &osm::Way, bounds: &osm::Bounds, width: f
 }
 
 fn process_points(node: &osm::Node, bounds: &osm::Bounds, width: f64, height: f64) -> js_sys::Array {
-    let n_lat = map_points(node.lat, bounds.minlat, bounds.maxlat, 0.0, width);
-    let n_lon = map_points(node.lon, bounds.minlon, bounds.maxlon, 0.0, height);
+    let y = map_points(node.lat, bounds.minlat, bounds.maxlat, 0.0, width);
+    let x = map_points(node.lon, bounds.minlon, bounds.maxlon, 0.0, height);
     let point = js_sys::Array::new();
-    point.push(&JsValue::from_f64(n_lat));
-    point.push(&JsValue::from_f64(n_lon));
+    point.push(&JsValue::from_f64(x));
+    point.push(&JsValue::from_f64(y));
     point
 }
 

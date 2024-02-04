@@ -30,32 +30,32 @@
 
         switch (park) {
             case 'epcot':
-                n = '28.3768';
-                w = '-81.5553';
-                s = '28.3661';
-                e = '-81.5425';
+                n = 28.3768;
+                w = -81.5553;
+                s = 28.3661;
+                e = -81.5425;
                 break;
             case 'hollywood_studios':
             case 'hs':
-                n = '28.3625';
-                w = '-81.5641';
-                s = '28.3523';
-                e = '-81.5561';
+                n = 28.3625;
+                w = -81.5641;
+                s = 28.3523;
+                e = -81.5561;
                 break;
             case 'animal_kingdom':
             case 'ak':
-                n = '28.3692';
-                w = '-81.5984';
-                s = '28.3524';
-                e = '-81.5831';
+                n = 28.3692;
+                w = -81.5984;
+                s = 28.3524;
+                e = -81.5831;
                 break;
             case 'magic_kingdom':
             case 'mk':
             default:
-                n = '28.42278';
-                w = '-81.58709';
-                s = '28.41566';
-                e = '-81.57547';
+                n = 28.42266;
+                w = -81.58586;
+                s = 28.41604;
+                e = -81.57600;
                 break;
         }
 
@@ -64,38 +64,47 @@
         let named_buildings = `way[building][name];foreach{(._;>;);out;}`;
         let walkways = `way[highway];foreach{(._;>;);out;}`;
         let trees = `node[natural=tree];foreach{(._;>;);out;}`;
-        let gardens = `way[leisure=garden];foreach{(._;>;);out;}`;
-        let forests = `way[landuse=forest];foreach{(._;>;);out;}`;
+        let gardens = `(way[leisure=garden];way[landuse=forest];way[landuse=meadow];);foreach{(._;>;);out;}`;
         let water = `relation[natural=water];foreach{(._;>;);out;}`;
         let query = `[timeout:90][bbox:${bbox}];`;
 
-        let ratio = (Math.abs(+w) - Math.abs(+e)) / (+n - +s);
-        let width = 1280;
+        let ratio = (Math.abs(w) - Math.abs(e)) / (n - s);
+        let width = 1800;
         let height = width * ratio;
         canvas.width = height;
         canvas.height = width;
 
         let ctx = canvas.getContext('2d');
         ctx.translate(0, width);
-        ctx.rotate(-Math.PI / 2);
+        ctx.scale(1, -1);
 
         let url = `https://overpass-api.de/api/interpreter?data=${query}`;
         getWater(url);
+
+        function drawPolygons(p, fill, stroke) {
+            for (let polygon of p) {
+                ctx.beginPath();
+                for (let point of polygon) {
+                    ctx.lineTo(point[0], point[1]);
+                }
+                if (fill) {
+                    ctx.fillStyle = fill;
+                    ctx.fill();
+                }
+                if (stroke) {
+                    ctx.strokeStyle = stroke;
+                    ctx.stroke();
+                }
+                ctx.closePath();
+            }
+        }
 
         function getWater(url) {
             fetch(url+`${water};out;`).then(response => {
                 return response.text();
             }).then(data => {
                 let p = process_relations(data, width, height);
-                for (let water of p) {
-                    ctx.beginPath();
-                    for (let point of water) {
-                        ctx.lineTo(point[0], point[1]);
-                    }
-                    ctx.fillStyle = 'rgb(83,156,156)';
-                    ctx.fill();
-                    ctx.closePath();
-                }
+                drawPolygons(p, 'rgb(83,156,156)', null);
                 getGardens(url);
             });
         }
@@ -105,15 +114,7 @@
                 return response.text();
             }).then(data => {
                 let p = process_ways(data, width, height);
-                for (let walkway of p) {
-                    ctx.beginPath();
-                    for (let point of walkway) {
-                        ctx.lineTo(point[0], point[1]);
-                    }
-                    ctx.strokeStyle = 'rgb(0,0,0)';
-                    ctx.stroke();
-                    ctx.closePath();
-                }
+                drawPolygons(p, null, 'rgb(0,0,0)');
                 // getTrees(url);
                 getBuildings(url);
             });
@@ -124,17 +125,9 @@
                 return response.text();
             }).then(data => {
                 let p = process_ways(data, width, height);
-                for (let building of p) {
-                    ctx.beginPath();
-                    for (let point of building) {
-                        ctx.lineTo(point[0], point[1]);
-                    }
-                    ctx.fillStyle = 'rgb(98,90,87)';
-                    ctx.fill();
-                    ctx.closePath();
-                }
+                drawPolygons(p, 'rgb(98,90,87)', null);
+                getNamedBuildings(url);
             });
-            getNamedBuildings(url);
         }
 
         function getNamedBuildings(url) {
@@ -142,32 +135,16 @@
                 return response.text();
             }).then(data => {
                 let p = process_ways(data, width, height);
-                for (let building of p) {
-                    ctx.beginPath();
-                    for (let point of building) {
-                        ctx.lineTo(point[0], point[1]);
-                    }
-                    ctx.fillStyle = 'rgb(227, 178, 73)';
-                    ctx.fill();
-                    ctx.closePath();
-                }
+                drawPolygons(p, 'rgb(220,177,102)', null);
             });
         }
 
         function getGardens(url) {
-            fetch(url+`${gardens};${forests};out;`).then(response => {
+            fetch(url+`${gardens};out;`).then(response => {
                 return response.text();
             }).then(data => {
                 let p = process_ways(data, width, height);
-                for (let garden of p) {
-                    ctx.beginPath();
-                    for (let point of garden) {
-                        ctx.lineTo(point[0], point[1]);
-                    }
-                    ctx.fillStyle = 'rgb(136,172,140)';
-                    ctx.fill();
-                    ctx.closePath();
-                }
+                drawPolygons(p, 'rgb(136,172,140)', null);
                 getWalkways(url);
             });
         }
