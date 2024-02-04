@@ -7,10 +7,11 @@
         body {
             margin: 0;
             padding: 0;
-            display: flex;
+            /* display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
+            align-items: center; */
+            height: 100%;
+            width: 100%;
         }
     </style>
 </head>
@@ -21,13 +22,46 @@
         init();
 
         let canvas = document.getElementById('canvas');
+        const queryString = window.location.search;
+        const searchParams = new URLSearchParams(queryString);
 
-        let n = '28.42278';
-        let w = '-81.58709';
-        let s = '28.41566';
-        let e = '-81.57547';
+        let park = searchParams.get('park');
+        let n, w, s, e;
+
+        switch (park) {
+            case 'epcot':
+                n = '28.3768';
+                w = '-81.5553';
+                s = '28.3661';
+                e = '-81.5425';
+                break;
+            case 'hollywood_studios':
+            case 'hs':
+                n = '28.3625';
+                w = '-81.5641';
+                s = '28.3523';
+                e = '-81.5561';
+                break;
+            case 'animal_kingdom':
+            case 'ak':
+                n = '28.3692';
+                w = '-81.5984';
+                s = '28.3524';
+                e = '-81.5831';
+                break;
+            case 'magic_kingdom':
+            case 'mk':
+            default:
+                n = '28.42278';
+                w = '-81.58709';
+                s = '28.41566';
+                e = '-81.57547';
+                break;
+        }
+
         let bbox = `${s},${w},${n},${e}`;
-        let buildings = `way[building];foreach{(._;>;);out;}`;
+        let buildings = `way[building][!name];foreach{(._;>;);out;}`;
+        let named_buildings = `way[building][name];foreach{(._;>;);out;}`;
         let walkways = `way[highway];foreach{(._;>;);out;}`;
         let trees = `node[natural=tree];foreach{(._;>;);out;}`;
         let gardens = `way[leisure=garden];foreach{(._;>;);out;}`;
@@ -96,6 +130,24 @@
                         ctx.lineTo(point[0], point[1]);
                     }
                     ctx.fillStyle = 'rgb(98,90,87)';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            });
+            getNamedBuildings(url);
+        }
+
+        function getNamedBuildings(url) {
+            fetch(url+`${named_buildings};out;`).then(response => {
+                return response.text();
+            }).then(data => {
+                let p = process_ways(data, width, height);
+                for (let building of p) {
+                    ctx.beginPath();
+                    for (let point of building) {
+                        ctx.lineTo(point[0], point[1]);
+                    }
+                    ctx.fillStyle = 'rgb(227, 178, 73)';
                     ctx.fill();
                     ctx.closePath();
                 }
