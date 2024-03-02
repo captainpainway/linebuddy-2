@@ -20,8 +20,6 @@
     <script type="module">
         import init, {process_ways, process_relations, process_nodes} from './process-maps/pkg/process_maps.js';
         init();
-        let time = Date.now();
-        console.log(time);
 
         const queryString = window.location.search;
         const searchParams = new URLSearchParams(queryString);
@@ -103,10 +101,6 @@
             }
             drawPolygons(buildings, 'rgb(98,90,87)', null);
             drawPolygons(named_buildings, 'rgb(220,177,102)', null);
-            let time2 = Date.now();
-            console.log(time2);
-            let delta = time2 - time;
-            console.log(delta / 1000);
         });
 
         function drawPolygons(p, fill, stroke) {
