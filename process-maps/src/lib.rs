@@ -21,12 +21,14 @@ pub fn process_nodes(text: String, width: f64, height: f64) -> js_sys::Array {
 }
 
 #[wasm_bindgen]
-pub fn process_ways(text: String, width: f64, height: f64) -> js_sys::Array {
+pub fn process_ways(text: String, width: f64, height: f64, check_geom: bool) -> js_sys::Array {
     let doc = osm::OSM::parse(text.as_bytes()).unwrap();
     let bounds = doc.bounds.unwrap();
     let arr = js_sys::Array::new();
     for (_id, way) in doc.ways.iter() {
-        arr.push(&process_coords(&doc, way, &bounds, width, height));
+        if (check_geom && check_geometry(&way)) || !check_geom {
+            arr.push(&process_coords(&doc, way, &bounds, width, height));
+        }
     }
     arr
 }
@@ -37,7 +39,9 @@ pub fn process_relations(text: String, width: f64, height: f64) -> js_sys::Array
     let bounds = doc.bounds.unwrap();
     let arr = js_sys::Array::new();
     for (_id, relation) in doc.relations.iter() {
+        // log(&format!("{:?}", relation));
         for member in relation.members.iter() {
+            // log(&format!("{:?}", member));
             match member {
                 osm::Member::Way(way, t) => {
                     let w = &doc.resolve_reference(&way);
@@ -54,7 +58,14 @@ pub fn process_relations(text: String, width: f64, height: f64) -> js_sys::Array
             }
         }
     }
+    // log(&format!("{:?}", arr));
     arr
+}
+
+fn check_geometry(way: &osm::Way) -> bool {
+    let first = way.nodes.first().unwrap();
+    let last = way.nodes.last().unwrap();
+    first == last
 }
 
 fn process_coords(doc: &osm::OSM, way: &osm::Way, bounds: &osm::Bounds, width: f64, height: f64) -> js_sys::Array {

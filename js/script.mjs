@@ -38,12 +38,14 @@ switch (park) {
 }
 
 const bbox = `${s},${w},${n},${e}`;
-const buildings = `way[building][!name];foreach{(._;>;);out;}`;
+const buildings = `(way[building][!name];way[construction];);foreach{(._;>;);out;}`;
 const named_buildings = `way[building][name];foreach{(._;>;);out;}`;
 const walkways = `way[highway];foreach{(._;>;);out;}`;
 const trees = `node[natural=tree];foreach{(._;>;);out;}`;
 const gardens = `(way[leisure=garden];way[landuse=forest];way[landuse=meadow];);foreach{(._;>;);out;}`;
 const water = `(way[natural=water];relation[natural=water];);foreach{(._;>;);out;}`;
+const pedestrian = `(relation[highway=pedestrian];way[highway=pedestrian];);foreach{(._;>;);out;}`;
+// const pedestrian = `relation[highway=pedestrian][ref="FWW Promenade"];foreach{(._;>;);out;}`;
 const query = `[timeout:90][bbox:${bbox}];`;
 
 let scene = document.querySelector('a-scene');
@@ -58,19 +60,16 @@ const walkway_data = getWalkways(url);
 const tree_data = getTrees(url);
 const building_data = getBuildings(url);
 const nbuilding_data = getNamedBuildings(url);
+const pedestrian_data = getPedestrian(url);
 
-Promise.all([water_data, garden_data, walkway_data, tree_data, building_data, nbuilding_data]).then(values => {
-    const [water, gardens, walkways, trees, buildings, named_buildings] = values;
+Promise.all([water_data, garden_data, walkway_data, tree_data, building_data, nbuilding_data, pedestrian_data]).then(values => {
+    const [water, gardens, walkways, trees, buildings, named_buildings, pedestrian] = values;
     createGeometry(water, 0.05, 'rgb(83,156,156)');
-    createGeometry(gardens, 0.1, 'rgb(136,172,140)');
+    createGeometry(pedestrian, 0.08, 'rgb(118,118,134)');
+    createGeometry(gardens, 0.12, 'rgb(136,172,140)');
     createGeometry(buildings, 0.5, 'rgb(88,87,98)');
     createGeometry(named_buildings, 1.0, 'rgb(88,87,98)');
     createLineGeometry(walkways);
-    // createGeometry(buildings, 0.5, 'rgb(220,177,102)');
-    // createGeometry(named_buildings, 1.0, 'rgb(220,177,102)');
-    // drawPolygons(water, 'rgb(83,156,156)', null);
-    // drawPolygons(gardens, 'rgb(136,172,140)', null);
-    // drawPolygons(walkways, null, 'rgb(0,0,0)');
     // for (let tree of trees) {
     //     ctx.beginPath();
     //     ctx.arc(tree[0], tree[1], 3, 0, 2 * Math.PI);
@@ -78,12 +77,11 @@ Promise.all([water_data, garden_data, walkway_data, tree_data, building_data, nb
     //     ctx.fill();
     //     ctx.closePath();
     // }
-    // drawPolygons(buildings, 'rgb(98,90,87)', null);
-    // drawPolygons(named_buildings, 'rgb(220,177,102)', null);
 });
 
 function createGeometry(p, height, color) {
     for (let vertices of p) {
+        // console.log(vertices);
         let mapItem = document.createElement('a-entity');
         mapItem.setAttribute('geometry', {
             primitive: 'map-item',
@@ -101,7 +99,7 @@ function createLineGeometry(p) {
     for (let vertices of p) {
         const points = vertices.map(point => {
             let [x, y] = point.split(' ').map(val => parseFloat(val));
-            return new THREE.Vector3(x, 0.01, y);
+            return new THREE.Vector3(x, 0.11, y);
         });
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({color: 0x000000}));
@@ -113,9 +111,37 @@ function getWater(url) {
     return fetch(`${url}${water};out;`).then(response => {
         return response.text();
     }).then(data => {
-        let ways = process_ways(data, width, height);
+        let ways = process_ways(data, width, height, true);
         let relations = process_relations(data, width, height);
         return ways.concat(relations);
+    });
+}
+
+function getPedestrian(url) {
+    return fetch(`${url}${pedestrian};out;`).then(response => {
+        return response.text();
+    }).then(data => {
+        // console.log(data);
+        let ways = process_ways(data, width, height, true);
+        let relations = process_relations(data, width, height);
+        let new_relations = [];
+        outer: for (let rel of relations) {
+            let first = rel[0];
+            for (let n of new_relations) {
+                if (n[n.length - 1] === first) {
+                    for (let r of rel) {
+                        n.push(r);
+                        continue outer;
+                    }
+                }
+            }
+            new_relations.push(rel);
+        }
+        let dedup_relations = Array.from(new Set(new_relations));
+        return ways.concat(dedup_relations);
+        // return dedup_relations;
+        // console.log(new_relations);
+        // return relations;
     });
 }
 
@@ -123,7 +149,7 @@ function getWalkways(url) {
     return fetch(`${url}${walkways};out;`).then(response => {
         return response.text();
     }).then(data => {
-        return process_ways(data, width, height);
+        return process_ways(data, width, height, false);
     });
 }
 
@@ -131,7 +157,7 @@ function getBuildings(url) {
     return fetch(`${url}${buildings};out;`).then(response => {
         return response.text();
     }).then(data => {
-        return process_ways(data, width, height);
+        return process_ways(data, width, height, true);
     });
 }
 
@@ -139,7 +165,7 @@ function getNamedBuildings(url) {
     return fetch(`${url}${named_buildings};out;`).then(response => {
         return response.text();
     }).then(data => {
-        return process_ways(data, width, height);
+        return process_ways(data, width, height, false);
     });
 }
 
@@ -147,7 +173,7 @@ function getGardens(url) {
     return fetch(`${url}${gardens};out;`).then(response => {
         return response.text();
     }).then(data => {
-        return process_ways(data, width, height);
+        return process_ways(data, width, height, false);
     });
 }
 
