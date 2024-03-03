@@ -29,7 +29,6 @@ AFRAME.registerGeometry('map-item', {
         geometry.rotateX(Math.PI / 2);
         geometry.translate(0, data.height, 0);
         geometry.computeBoundingBox();
-        geometry.computeVertexNormals();
         this.geometry = geometry;
     }
 });

@@ -43,7 +43,7 @@ const named_buildings = `way[building][name];foreach{(._;>;);out;}`;
 const walkways = `way[highway];foreach{(._;>;);out;}`;
 const trees = `node[natural=tree];foreach{(._;>;);out;}`;
 const gardens = `(way[leisure=garden];way[landuse=forest];way[landuse=meadow];);foreach{(._;>;);out;}`;
-const water = `relation[natural=water];foreach{(._;>;);out;}`;
+const water = `(way[natural=water];relation[natural=water];);foreach{(._;>;);out;}`;
 const query = `[timeout:90][bbox:${bbox}];`;
 
 let scene = document.querySelector('a-scene');
@@ -83,11 +83,7 @@ Promise.all([water_data, garden_data, walkway_data, tree_data, building_data, nb
 });
 
 function createGeometry(p, height, color) {
-    for (let polygon of p) {
-        let vertices = polygon.map(point => {
-            let [x, y] = point;
-            return `${x / 50} ${y / 50}`;
-        });
+    for (let vertices of p) {
         let mapItem = document.createElement('a-entity');
         mapItem.setAttribute('geometry', {
             primitive: 'map-item',
@@ -102,19 +98,14 @@ function createGeometry(p, height, color) {
 }
 
 function createLineGeometry(p) {
-    for (let polygon of p) {
-        let vertices = polygon.map(point => {
-            let [x, y] = point;
-            return `${x / 50} ${y / 50}`;
-        });
-        const scene = document.querySelector('a-scene').object3D;
+    for (let vertices of p) {
         const points = vertices.map(point => {
             let [x, y] = point.split(' ').map(val => parseFloat(val));
             return new THREE.Vector3(x, 0.01, y);
         });
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({color: 0x000000}));
-        scene.add(line);
+        scene.object3D.add(line);
     }
 }
 
@@ -122,7 +113,9 @@ function getWater(url) {
     return fetch(`${url}${water};out;`).then(response => {
         return response.text();
     }).then(data => {
-        return process_relations(data, width, height);
+        let ways = process_ways(data, width, height);
+        let relations = process_relations(data, width, height);
+        return ways.concat(relations);
     });
 }
 

@@ -7,7 +7,7 @@
     <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
     <script src="https://unpkg.com/aframe-orbit-controls@1.3.2/dist/aframe-orbit-controls.min.js"></script>
     <script src="js/geom.js"></script>
-    <script defer type="module" src="js/script.mjs"></script>
+    <script type="module" src="js/script.mjs"></script>
     <style>
         body {
             margin: 0;
@@ -22,7 +22,6 @@
 </head>
 <body>
     <a-scene environment="preset: contact; dressing: none; ground: flat; fog: 0.7">
-<!--    <a-scene>-->
         <a-camera look-controls="enabled: false" orbit-controls="target: 0 0 0; minDistance: 2; maxDistance: 180; initialPosition: 0 10 -20; rotateSpeed: 0.5; maxPolarAngle: 90"></a-camera>
     </a-scene>
 </body>
